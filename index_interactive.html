@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seminar Attendance Checklist</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        #reader { width: 100%; max-width: 400px; margin: 0 auto 20px auto; border-radius: 8px; overflow: hidden; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #007bff; color: white; position: sticky; top: 0; }
+        
+        /* The "Grey Out" Style */
+        .checked-in {
+            background-color: #d1d1d1 !important;
+            color: #777;
+            text-decoration: line-through;
+            transition: all 0.5s ease;
+        }
+        
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; background: #ffc107; }
+        .checked-in .status-badge { background: #28a745; color: white; text-decoration: none; display: inline-block; }
+
+        .btn-start { background: #007bff; color: white; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Seminar Attendance Checklist</h2>
+    
+    <button class="btn-start" id="start-btn" onclick="initScanner()">Open Scanner</button>
+    <div id="reader"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Organization</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="participant-table-body">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    let participants = [];
+
+    // 1. Load Data and build the table
+    fetch('participants_2.json')
+        .then(res => res.json())
+        .then(data => {
+            participants = data;
+            const tbody = document.getElementById('participant-table-body');
+            
+            data.forEach(p => {
+                const row = document.createElement('tr');
+                row.id = `row-${p.ID}`; // Give each row a unique ID
+                row.innerHTML = `
+                    <td>${p.ID}</td>
+                    <td>${p.Name} ${p[""] || ""}</td>
+                    <td>${p["__1"]}</td>
+                    <td><span class="status-badge" id="badge-${p.ID}">Absent</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        });
+
+    function onScanSuccess(decodedText) {
+        const scanResult = decodedText.trim();
+
+        // Find the person in our local data
+        const person = participants.find(p => p["Combined (A+B+C)"].trim() === scanResult);
+
+        if (person) {
+            // Find the specific row in the table
+            const row = document.getElementById(`row-${person.ID}`);
+            const badge = document.getElementById(`badge-${person.ID}`);
+
+            if (row) {
+                // Apply the grey-out effect
+                row.classList.add('checked-in');
+                badge.innerText = "Present";
+                
+                // Show a quick success alert
+                alert("Confirmed: " + person.Name);
+            }
+            
+            if (navigator.vibrate) navigator.vibrate(100);
+        } else {
+            alert("No match found in list.");
+        }
+    }
+
+    function initScanner() {
+        document.getElementById('start-btn').style.display = 'none';
+        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+    }
+</script>
+
+</body>
+</html>
