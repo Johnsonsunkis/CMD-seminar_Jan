@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Checklist</title>
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+
+<div class="container">
+    <h2>Seminar Checklist</h2>
+    
+    <button class="btn-open" id="start-btn" onclick="startScanner()">Click to Scan QR</button>
+    
+    <div id="reader"></div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Org</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
