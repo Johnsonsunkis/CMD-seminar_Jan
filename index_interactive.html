@@ -3,38 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance Checklist</title>
-    
-    <link rel="stylesheet" href="style.css">
-    
+    <title>Seminar Checklist</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+        #debug-log { background: #fee; color: red; padding: 10px; border: 1px solid red; margin-bottom: 10px; display: none; font-size: 12px; }
+        #reader { width: 100%; background: #000; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .checked-in { background-color: #ddd !important; color: #888; text-decoration: line-through; }
+        .btn-scan { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+    </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Seminar Checklist</h2>
     
-    <button class="btn-open" id="start-btn" onclick="startScanner()">Click to Scan QR</button>
-    
+    <div id="debug-log"></div>
+
+    <button id="start-btn" class="btn-scan" onclick="startScanner()">1. Start Camera</button>
     <div id="reader"></div>
 
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Org</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-                </tbody>
-        </table>
-    </div>
+    <div id="loading-status">Loading participant list...</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
 </div>
 
-<script src="script.js"></script>
+<script>
+    const log = document.getElementById('debug-log');
+    const status = document.getElementById('loading-status');
+
+    function showError(msg) {
+        log.style.display = 'block';
+        log.innerText = "ERROR: " + msg;
+    }
+
+    let participants = [];
+
+    // 1. Try to load the JSON
+    console.log("Attempting to fetch JSON...");
+    fetch('participants_2.json')
+        .then(res => {
+            if(!res.ok) throw new Error("Could not find participants_2.json in this folder.");
+            return res.json();
+        })
+        .then(data => {
+            participants = data;
+            const tbody = document.getElementById('table-body');
+            status.innerText = "Loaded " + data.length + " participants.";
+            
+            data.forEach(p => {
+                const row = document.createElement('tr');
+                row.id = "row-" + p.ID;
+                row.innerHTML = `<td>${p.ID}</td><td>${p.Name}</td><td id="status-${p.ID}">Absent</td>`;
+                tbody.appendChild(row);
+            });
+        })
+        .catch(err => {
+            showError(err.message);
+            status.innerText = "Load failed.";
+        });
+
+    function onScanSuccess(decodedText) {
+        const scanResult = decodedText.trim();
+        const person = participants.find(p => p["Combined (A+B+C)"].trim() === scanResult);
+
+        if (person) {
+            const row = document.getElementById("row-" + person.ID);
+            const statCell = document.getElementById("status-" + person.ID);
+            if (row) {
+                row.classList.add('checked-in');
+                statCell.innerText = "Present";
+                alert("Checked in: " + person.Name);
+            }
+        } else {
+            alert("No match for: " + scanResult);
+        }
+    }
+
+    function startScanner() {
+        try {
+            document.getElementById('start-btn').style.display = 'none';
+            const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+            scanner.render(onScanSuccess);
+        } catch (e) {
+            showError("Scanner Init Error: " + e.message);
+        }
+    }
+</script>
 
 </body>
 </html>
